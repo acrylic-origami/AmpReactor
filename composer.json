@@ -1,0 +1,20 @@
+{
+	"name": "hhreact/ampreactor",
+	"license": "MIT",
+	"authors": [
+		{
+			"name": "Derek Lam",
+			"email": "derek@lam.io"
+		}
+	],
+	"autoload": {
+		"exclude-from-classmap": ["._"],
+		"psr-4": {
+			"AmpReactor\\": "src",
+			"AmpReactor\\Test": "test"
+		}
+	}
+	"require": {
+		"amphp/amp": "^1.2"
+	}
+}
