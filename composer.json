@@ -10,11 +10,24 @@
 	"autoload": {
 		"exclude-from-classmap": ["._"],
 		"psr-4": {
-			"AmpReactor\\": "src",
-			"AmpReactor\\Test": "test"
+			"AmpReactor\\": "src"
 		}
-	}
+	},
+	"autoload-dev": {
+		"psr-4": {
+			"AmpReactor\\Test\\": "test"
+		}
+	},
+	"config": {
+		"preferred-install": "dist",
+		"platform": {
+			"php": "7.0.0"
+		}
+	},
 	"require": {
-		"amphp/amp": "^1.2"
+		"amphp/amp": "~2.0"
+	},
+	"require-dev": {
+		"phpunit/phpunit": "~6.2"
 	}
 }

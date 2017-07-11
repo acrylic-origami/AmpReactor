@@ -22,7 +22,7 @@ class Producer extends BaseProducer {
 		$this->running_count = new Pointer(0);
 		$this->some_running = new Pointer(new Pointer(false));
 		
-		$this->buffer = new Queue();
+		$this->buffer = new Queue([null]);
 		$this->iterators = $iterators = []; // stash to eradicate references to `$this` in the `\Amp\Producer` generator
 		$this->_producer = new \Amp\Producer(function(callable $emitter) use ($iterator_factory, &$iterators) {
 			$coroutines = [];
