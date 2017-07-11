@@ -4,7 +4,7 @@ use Amp\Success;
 use Amp\Coroutine;
 use Amp\Iterator;
 use Amp\Promise;
-class Producer extends BaseProducer {
+class InteractiveProducer extends BaseProducer {
 	/**
 	 * @var Pointer<array<Iterator | Generator>> $iterators
 	 */
@@ -72,7 +72,7 @@ class Producer extends BaseProducer {
 			}
 		})();
 	}
-	public static function create(Iterator $iterator): Producer {
+	public static function create(Iterator $iterator): InteractiveProducer {
 		return new self(function(callable $_) use ($iterator) {
 			return [$iterator];
 		});
@@ -97,7 +97,7 @@ class Producer extends BaseProducer {
 	 * @param array<Iterator> $iterators
 	 * @return Producer
 	 */
-	public static function merge(array $iterators): Producer {
+	public static function merge(array $iterators): InteractiveProducer {
 		return new self(function($_) use ($iterators) {
 			return array_map(function(Iterator $iterator) {
 				if($iterator instanceof BaseProducer)
@@ -115,9 +115,9 @@ class Producer extends BaseProducer {
 	 *   - `Tv`-typed items from the return value might not preserve the order they are produced in _separate_ Producers created by `$coercer`.
 	 * - **Preferred**:
 	 *   - All ordering must be preserved.
-	 * @param (function(T): Producer<Tv>) $coercer - Transform `T`-valued items to Producers. E.g. for `T := Producer<Tv>`, $coercer may just be the identity function.
+	 * @param (function(T): InteractiveProducer<Tv>) $coercer - Transform `T`-valued items to Producers. E.g. for `T := Producer<Tv>`, $coercer may just be the identity function.
 	 */
-	public function flat_map(callable $coercer): Producer {
+	public function flat_map(callable $coercer): InteractiveProducer {
 		$clone = clone $this;
 		return new self(function(callable $emitter) {
 			return [new Coroutine((function() use ($emitter, $clone) {
@@ -139,7 +139,7 @@ class Producer extends BaseProducer {
 	 * - Any items produced after the beginning call in the original Producer must be produced by exactly one of the `this`-typed Producers in the return value.
 	 * @param <Tk as arraykey>(function(T): Tk) $keysmith - Assign `Tk`-valued keys to `T`-valued items
 	 */
-	public function group_by(callable $keysmith): Producer {
+	public function group_by(callable $keysmith): InteractiveProducer {
 		$subjects = [];
 		$clone = clone $this;
 		return self::create(new \Amp\Producer(function($emitter) use (&$subjects, $clone) {
@@ -165,7 +165,7 @@ class Producer extends BaseProducer {
 	 * - The last value of the original Producer, if there is one, must be produced in the return value.
 	 * @param int $timespan - The "timespan" as described above, in milliseconds.
 	 */
-	public function debounce(int $timespan): Producer {
+	public function debounce(int $timespan): InteractiveProducer {
 		$clone = clone $this;
 		return new self(function($outer_emitter) use ($timespan, $clone) {
 			$counter = 0;
@@ -197,7 +197,7 @@ class Producer extends BaseProducer {
 	 * @param \Amp\Iterator $signal - Produce a value whenever a new window opens.
 	 * @return Producer Produce Producers that group values from the original into windows dictated by `$signal`.
 	 */
-	public function window(Iterator $signal): Producer {
+	public function window(Iterator $signal): InteractiveProducer {
 		$clone = clone $this;
 		return new self(function($emitter) use ($clone, $signal) {
 			$subject = new Emitter();
@@ -221,5 +221,11 @@ class Producer extends BaseProducer {
 				})()
 			];
 		});
+	}
+	
+	public static function never(): InteractiveProducer {
+		return self::create(new Producer(function($_) {
+			return (new Deferred)->promise();
+		}))
 	}
 }

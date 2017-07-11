@@ -1,14 +1,14 @@
 <?php
 namespace AmpReactor\Test;
 
-use AmpReactor\Producer;
+use AmpReactor\InteractiveProducer;
 
 use Amp\Promise;
 use Amp\Coroutine;
 use function Amp\Promise\wait;
 use function Amp\Promise\all;
 class OperatorTestCase extends \PHPUnit\Framework\TestCase {
-	private static function direct_collapse(Producer $producer): Promise {
+	private static function direct_collapse(InteractiveProducer $producer): Promise {
 		return new Coroutine((function() use ($producer) {
 			$values = [];
 			while(yield $producer->advance())
@@ -17,7 +17,7 @@ class OperatorTestCase extends \PHPUnit\Framework\TestCase {
 			return $values;
 		})());
 	}
-	public function assertHotColdConsumersSeeValues(array $expected, Producer $producer) {
+	public function assertHotColdConsumersSeeValues(array $expected, InteractiveProducer $producer) {
 		$results = wait(
 			all([
 				self::direct_collapse(clone $producer),

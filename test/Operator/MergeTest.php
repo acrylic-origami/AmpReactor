@@ -17,7 +17,7 @@ class MergeTest extends \AmpReactor\Test\OperatorTestCase {
 		});
 		$this->assertHotColdConsumersSeeValues(
 			[2, 4, 6, 'foo', 'bar', 'baz', 'quux'],
-			\AmpReactor\Producer::merge([ $left, $right ])
+			\AmpReactor\InteractiveProducer::merge([ $left, $right ])
 		);
 	}
 }
