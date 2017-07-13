@@ -1,5 +1,5 @@
 <?php
-namespace AmpReactor;
+namespace AmpReactor\Internal;
 class Queue {
 	protected $head;
 	protected $tail;

@@ -9,6 +9,7 @@
 	],
 	"autoload": {
 		"exclude-from-classmap": ["._"],
+		"files": ["src/Util/defer.php"],
 		"psr-4": {
 			"AmpReactor\\": "src"
 		}
