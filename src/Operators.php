@@ -72,22 +72,22 @@ trait Operators {
 	 * @param <Tk as arraykey>(function(T): Tk) $keysmith - Assign `Tk`-valued keys to `T`-valued items
 	 */
 	public function group_by(callable $keysmith): InteractiveProducer {
-		$subjects = [];
 		$clone = clone $this;
-		return self::create(new \Amp\Producer(function($emitter) use (&$subjects, $clone) {
+		return self::from_producerish(function($emitter) use ($clone, $keysmith) {
+			$subjects = [];
 			while(yield $clone->advance()) {
 				$value = $clone->getCurrent();
 				$key = $keysmith($value);
 				if(!array_key_exists($key, $subjects)) {
 					$subject = new Emitter();
 					$subjects[$key] = $subject;
-					$emitter($subject->iterate());
+					$emitter(/* TEMP */self::create($subject->iterate()));
 				}
 				$subjects[$key]->emit($value);
 			}
 			foreach($subjects as $subject)
 				$subject->complete();
-		}));
+		});
 	}
 	
 	/**
