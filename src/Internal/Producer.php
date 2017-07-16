@@ -83,9 +83,7 @@ abstract class Producer {
 		return new Coroutine((function() use ($buffer, $waiting, $complete) {
 			while(!$complete->value && $buffer->is_empty())
 				$result = yield $waiting->value->promise();
-			// return \AmpReactor\Util\defer(function() use ($complete, $result) {
 			return $complete->value ?? $result;
-			// });
 		})());
 	}
 

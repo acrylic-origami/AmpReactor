@@ -99,25 +99,29 @@ trait Operators {
 	 */
 	public function debounce(int $timespan): InteractiveProducer {
 		$clone = clone $this;
-		return new self(function($outer_emitter) use ($timespan, $clone) {
-			$counter = 0;
-			$time_shifted_stream = new \Amp\Producer(function($inner_emitter) use (&$counter, $timespan, $clone) {
-				while(yield $clone->advance())
-					$inner_emitter(new Delayed($timespan, new class(++$counter, $clone->getCurrent()) {
-						use \Amp\Struct;
-						public $stashed_counter;
-						public $payload;
-						
-						public function __construct($counter, $payload) {
-							$this->stashed_counter = $counter;
-							$this->payload = $payload;
-						}
-					}));
-			});
+		$counter = 0;
+		$time_shifted_stream = new \Amp\Producer(function($inner_emitter) use (&$counter, $timespan, $clone) {
+			while(yield $clone->advance()) {
+				$latest_future = new \Amp\Delayed($timespan, new class(++$counter, $clone->getCurrent()) {
+					use \Amp\Struct;
+					public $stashed_counter;
+					public $payload;
+					
+					public function __construct($counter, $payload) {
+						$this->stashed_counter = $counter;
+						$this->payload = $payload;
+					}
+				});
+				$inner_emitter($latest_future);
+			}
+			yield $latest_future;
+			yield \AmpReactor\Util\defer();
+		});
+		return self::from_producerish(function($emitter) use (&$counter, $time_shifted_stream) {
 			while(yield $time_shifted_stream->advance()) {
 				$item = $time_shifted_stream->getCurrent();
 				if($item->stashed_counter === $counter)
-					$outer_emitter($item->payload);
+					$emitter($item->payload);
 			}
 		});
 	}
