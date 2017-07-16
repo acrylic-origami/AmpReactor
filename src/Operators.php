@@ -46,7 +46,7 @@ trait Operators {
 					
 					if(is_callable($item))
 						// for Producerish (i.e. (function(Emitter): Generator<T>))
-						$item($emitter);
+						$item = $item($emitter);
 					else
 						// for \Amp\Iterator
 						$item = $this->iterator_to_emitting_generator($item, $emitter);
