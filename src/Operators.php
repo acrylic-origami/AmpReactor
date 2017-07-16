@@ -469,8 +469,8 @@ trait Operators {
 		if($left instanceof InteractiveProducer) $left = clone $left;
 		if($right instanceof InteractiveProducer) $right = clone $right;
 		
-		return static::from_producerish(function($emitter) use ($left, $right) {
-			while(!in_array(false, yield \Amp\Producer\all([$left->advance(), $right->advance()]), true)) {
+		return static::from_producerish(function($emitter) use ($left, $right, $combiner) {
+			while(!in_array(false, yield \Amp\Promise\all([$left->advance(), $right->advance()]), true)) {
 				$emitter($combiner($left->getCurrent(), $right->getCurrent()));
 			}
 		});
