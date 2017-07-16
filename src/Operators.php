@@ -32,15 +32,18 @@ trait Operators {
 	 *   - `Tv`-typed items from the return value might not preserve the order they are produced in _separate_ Producers created by `$coercer`.
 	 * - **Preferred**:
 	 *   - All ordering must be preserved.
-	 * @param (function(T): (function(Emitter): Generator<Tv>)) $coercer - Transform `T`-valued items to Generators. E.g. for `T := Generator<Tv>`, $coercer may just be the identity function.
+	 * @param ?(function(T): (function(Emitter): Generator<Tv>)) $coercer - Transform `T`-valued items to Generators. $coercer defaults to the identity function, under the assumption  `T` is already a `(function(Emitter): Generator<Tv>)`.
 	 */
-	public function flat_map(callable $coercer): InteractiveProducer {
+	public function flat_map(callable $coercer = null): InteractiveProducer {
 		$clone = clone $this;
 		return new self(function(callable $emitter) use ($clone, $coercer) {
 			return [(function() use ($emitter, $clone, $coercer) {
 				$coroutines = [];
 				while(yield $clone->advance()) {
-					$coroutines[] = $coroutine = new Coroutine($coercer($clone->getCurrent())($emitter));
+					$item = $clone->getCurrent();
+					if(!is_null($coercer))
+						$item = $coercer($item);
+					$coroutines[] = $coroutine = new Coroutine($item($emitter));
 				}
 				yield \Amp\Promise\all($coroutines);
 			})()];
@@ -49,15 +52,24 @@ trait Operators {
 	
 	/**
 	 * Borrowed from Akka: [Pass incoming elements to a function that return a Promise result. When the promise resolves the result is passed downstream. Order is not preserved.](http://doc.akka.io/docs/akka/2.4.2/scala/stream/stages-overview.html#mapAsync)
-	 * @param (function(T): Promise<Tv>) $coercer Transform `T`-valued items to Tv-valued promises.
+	 * @param (function(T): Promise<Tv>) $coercer Transform `T`-valued items to Tv-valued promises. If null, defaults to identity, assuming `T` is already a `Promise<Tv>`.
 	 */
-	public function map_async_unordered(callable $coercer): InteractiveProducer {
+	public function map_async_unordered(callable $coercer = null): InteractiveProducer {
 		$clone = clone $this;
 		return new self(function(callable $emitter) use ($clone, $coercer) {
 			return [(function() use ($emitter, $clone, $coercer) {
 				$futures = [];
 				while(yield $clone->advance()) {
-					$futures[] = $coercer($clone->getCurrent());
+					$item = $clone->getCurrent();
+					if(!is_null($coercer))
+						$item = $coercer($item);
+					
+					// iffy about this coercion
+					if(!$item instanceof Promise)
+						$item = new Success($item);
+					
+					$futures[] = $item;
+					$emitter($item);
 				}
 				yield \Amp\Promise\all($futures);
 			})()];
