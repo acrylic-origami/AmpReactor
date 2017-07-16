@@ -3,6 +3,7 @@
 namespace AmpReactor;
 
 use Amp\Success;
+use Amp\Emitter;
 use Amp\Coroutine;
 use Amp\Iterator;
 use Amp\Promise;
@@ -31,7 +32,7 @@ trait Operators {
 	 *   - `Tv`-typed items from the return value might not preserve the order they are produced in _separate_ Producers created by `$coercer`.
 	 * - **Preferred**:
 	 *   - All ordering must be preserved.
-	 * @param (function(T): Generator<Tv>) $coercer - Transform `T`-valued items to Generators. E.g. for `T := Generator<Tv>`, $coercer may just be the identity function.
+	 * @param (function(T): (function(Emitter): Generator<Tv>)) $coercer - Transform `T`-valued items to Generators. E.g. for `T := Generator<Tv>`, $coercer may just be the identity function.
 	 */
 	public function flat_map(callable $coercer): InteractiveProducer {
 		$clone = clone $this;
@@ -40,9 +41,6 @@ trait Operators {
 				$coroutines = [];
 				while(yield $clone->advance()) {
 					$coroutines[] = $coroutine = new Coroutine($coercer($clone->getCurrent())($emitter));
-					// if($subproducer instanceof InteractiveProducer)
-					// 	$subproducer = clone $subproducer;
-					// $emitter($coroutine);
 				}
 				yield \Amp\Promise\all($coroutines);
 			})()];
@@ -57,9 +55,11 @@ trait Operators {
 		$clone = clone $this;
 		return new self(function(callable $emitter) use ($clone, $coercer) {
 			return [(function() use ($emitter, $clone, $coercer) {
+				$futures = [];
 				while(yield $clone->advance()) {
-					$emitter($coercer($clone->getCurrent()));
+					$futures[] = $coercer($clone->getCurrent());
 				}
+				yield \Amp\Promise\all($futures);
 			})()];
 		});
 	}
