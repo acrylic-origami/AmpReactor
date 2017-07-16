@@ -32,7 +32,7 @@ trait Operators {
 	 *   - `Tv`-typed items from the return value might not preserve the order they are produced in _separate_ Producers created by `$coercer`.
 	 * - **Preferred**:
 	 *   - All ordering must be preserved.
-	 * @param ?(function(T): (function(Emitter): Generator<Tv>)) $coercer - Transform `T`-valued items to Generators. $coercer defaults to the identity function, under the assumption  `T` is already a `(function(Emitter): Generator<Tv>)`.
+	 * @param ?(function(T): (function(Emitter): Generator<Tv>) | \Amp\Iterator) $coercer - Transform `T`-valued items to Generators. $coercer defaults to the identity function, under the assumption  `T` is already a `(function(Emitter): Generator<Tv>) | \Amp\Iterator`.
 	 */
 	public function flat_map(callable $coercer = null): InteractiveProducer {
 		$clone = clone $this;
@@ -43,7 +43,16 @@ trait Operators {
 					$item = $clone->getCurrent();
 					if(!is_null($coercer))
 						$item = $coercer($item);
-					$coroutines[] = $coroutine = new Coroutine($item($emitter));
+					
+					if(is_callable($item))
+						// for Producerish (i.e. (function(Emitter): Generator<T>))
+						$item($emitter);
+					else
+						// for \Amp\Iterator
+						$item = $this->iterator_to_emitting_generator($item, $emitter);
+						
+					// at this point, $item is definitely `\Generator`
+					$coroutines[] = $coroutine = new Coroutine($item);
 				}
 				yield \Amp\Promise\all($coroutines);
 			})()];
@@ -158,6 +167,7 @@ trait Operators {
 					$subject->complete();
 				})(),
 				(function() use (&$subject, $emitter, $signal, &$finished) {
+					$emitter($subject->iterate());
 					while(yield $signal->advance()) {
 						if($finished)
 							return;
