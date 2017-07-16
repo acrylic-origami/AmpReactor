@@ -2,7 +2,11 @@
 	<testsuites>
 		<testsuite name="Operator">
 			<directory>test/Operator</directory>
-			<exclude>test/Operator/.*</exclude>
 		</testsuite>
+		<filter>
+			<blacklist>
+				<file>test/Operator/._*</file>
+			</blacklist>
+		</filter>
 	</testsuites>
 </phpunit>
