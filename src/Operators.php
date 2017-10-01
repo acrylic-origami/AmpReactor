@@ -227,7 +227,7 @@ trait Operators {
 	 */
 	public function map(callable $f): InteractiveProducer {
 		$clone = clone $this;
-		return static::from_producerish(function($emitter) use ($clone) {
+		return static::from_producerish(function($emitter) use ($clone, $f) {
 			while(yield $clone->advance())
 				$emitter($f($clone->getCurrent()));
 		});

@@ -30,9 +30,9 @@ use AmpReactor\InteractiveProducer;
 	$number_producer = InteractiveProducer::create($iter_numbers);
 	
 	// Transform a stream, e.g. map
-	$square_producer = (clone $number_producer)->map(async ($root) ==> pow($root, 2));
+	$square_producer = (clone $number_producer)->map(function($root) { return pow($root, 2) });
 	// Transform two streams into one, e.g. zip
-	$cube_producer = InteractiveProducer::zip($number_producer, $square_producer, ($root, $square) ==> $root * $square);
+	$cube_producer = InteractiveProducer::zip($number_producer, $square_producer, function($root, $square) { return $root * $square; });
 	// Transform many streams into one, e.g. merge
 	$merged_producer = InteractiveProducer::merge(Vector{ $number_producer, $square_producer, $cube_producer });
 	while(yield $merged_producer->advance()) {
