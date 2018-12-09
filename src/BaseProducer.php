@@ -3,7 +3,7 @@ namespace AmpReactor;
 use Amp\Promise;
 abstract class BaseProducer implements \Amp\Iterator {
 	/**
-	 * @var Pointer<bool>
+	 * @var Pointer<int>
 	 */
 	protected $running_count;
 	

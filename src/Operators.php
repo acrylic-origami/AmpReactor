@@ -137,31 +137,15 @@ trait Operators {
 	 * @param int $timespan - The "timespan" as described above, in milliseconds.
 	 */
 	public function debounce(int $timespan): InteractiveProducer {
-		$clone = clone $this;
 		$counter = 0;
-		$time_shifted_stream = new \Amp\Producer(function($inner_emitter) use (&$counter, $timespan, $clone) {
-			while(yield $clone->advance()) {
-				$latest_future = new \Amp\Delayed($timespan, new class(++$counter, $clone->getCurrent()) {
-					use \Amp\Struct;
-					public $stashed_counter;
-					public $payload;
-					
-					public function __construct($counter, $payload) {
-						$this->stashed_counter = $counter;
-						$this->payload = $payload;
-					}
-				});
-				$inner_emitter($latest_future);
-			}
-			yield $latest_future;
-			yield \AmpReactor\Util\defer();
-		});
-		return self::from_producerish(function($emitter) use (&$counter, $time_shifted_stream) {
-			while(yield $time_shifted_stream->advance()) {
-				$item = $time_shifted_stream->getCurrent();
-				if($item->stashed_counter === $counter)
-					$emitter($item->payload);
-			}
+		return (clone $this)->flat_map(function($v) use (&$counter, $timespan) {
+			$counter++;
+			return new \Amp\Producer(function($emitter) use ($v, &$counter, $timespan) {
+				$stashed_counter = $counter;
+				yield new \Amp\Delayed($timespan);
+				if($stashed_counter === $counter)
+					$emitter($v);
+			});
 		});
 	}
 	

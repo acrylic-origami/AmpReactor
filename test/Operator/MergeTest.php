@@ -23,6 +23,10 @@ class MergeTest extends \AmpReactor\Test\OperatorTestCase {
 			\AmpReactor\InteractiveProducer::merge([ $left, $right ])
 		);
 	}
+	
+	/**
+	 * @group failing
+	 */
 	public function test_deferred_values() {
 		$left = new \Amp\Producer(function($emitter) {
 			$deferred = new \Amp\Deferred();
@@ -32,7 +36,7 @@ class MergeTest extends \AmpReactor\Test\OperatorTestCase {
 			});
 			$emitter(4);
 			$emitter(6);
-			yield $deferred;
+			yield $deferred->promise;
 		});
 		$right = new \Amp\Producer(function($emitter) {
 			$deferred = new \Amp\Deferred();
@@ -45,7 +49,7 @@ class MergeTest extends \AmpReactor\Test\OperatorTestCase {
 				});
 			});
 			$emitter('baz');
-			yield $deferred;
+			yield $deferred->promise;
 		});
 		$this->assertHotColdConsumersSeeValues(
 			[2, 4, 6, 'foo', 'bar', 'baz', 'quux'],
